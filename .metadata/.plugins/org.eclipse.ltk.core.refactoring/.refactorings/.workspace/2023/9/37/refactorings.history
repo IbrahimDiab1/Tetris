@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">&#x0A;<refactoring comment="Delete 3 resources" deleteContents="false" description="Delete 3 resources" element1="/Tetris/Src/main.c" element2="/Tetris/Src/syscalls.c" element3="/Tetris/Src/sysmem.c" flags="7" id="org.eclipse.ltk.core.refactoring.delete.resources" resources="3" stamp="1694584904040"/>&#x0A;<refactoring comment="Delete resource &apos;Tetris/Debug&apos;" deleteContents="false" description="Delete resource &apos;Tetris/Debug&apos;" element1="/Tetris/Debug" flags="7" id="org.eclipse.ltk.core.refactoring.delete.resources" resources="1" stamp="1694585503051"/>
+</session>

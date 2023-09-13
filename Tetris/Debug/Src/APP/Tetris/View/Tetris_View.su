@@ -1,0 +1,7 @@
+../Src/APP/Tetris/View/Tetris_View.c:20:6:Tetris_View_init	16	static
+../Src/APP/Tetris/View/Tetris_View.c:26:6:Tetris_View_handle	16	static
+../Src/APP/Tetris/View/Tetris_View.c:66:13:Tetris_View_renderWelcomeScreen	16	static
+../Src/APP/Tetris/View/Tetris_View.c:78:13:Tetris_View_renderTopScoresScreen	16	static
+../Src/APP/Tetris/View/Tetris_View.c:86:13:Tetris_View_renderNameInputScreen	16	static
+../Src/APP/Tetris/View/Tetris_View.c:97:13:Tetris_View_renderGameScreen	16	static
+../Src/APP/Tetris/View/Tetris_View.c:108:13:Tetris_View_renderGameOverScreen	16	static

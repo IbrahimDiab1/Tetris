@@ -1,0 +1,113 @@
+/******************************************************************************************/
+/* Author      : Ibrahim Diab                                                             */
+/* File Name   : Controller_Buttons.c                                                     */
+/* Description : Controller buttons initialization and configuration for Tetris game.     */
+/******************************************************************************************/
+
+#include <LIB/common_macros.h>
+#include <LIB/std_types.h>
+
+#include "../Inc/HAL/Button/Button_interface.h"
+
+#include "../Inc/APP/Tetris/Controller/Tetris_Controller.h"
+#include "../Inc/APP/Tetris/Controller/Tetris_Controller_Buttons.h"
+/*
+ * Function: Buttons_Tetris_initController
+ * ---------------------------------------
+ * Initializes the Tetris game controller for buttons input.
+ * Configures the pins and settings for UP, DOWN, LEFT, RIGHT, and OK (Rotate) buttons.
+ */
+static void Buttons_Tetris_initController()
+{
+    // Configuration for the UP button
+    Button_Config_t buttonConfig = {UP_BUTTON_PIN, UP_BUTTON_PORT, Pull_Down, Internal, EXTI_STATE_DISABLED, NULL};
+    Button_init(Up, &buttonConfig);
+
+    // Configuration for the DOWN button
+    buttonConfig.pin  = DOWN_BUTTON_PIN;
+    buttonConfig.port = DOWN_BUTTON_PORT;
+    Button_init(Down, &buttonConfig);
+
+    // Configuration for the LEFT button
+    buttonConfig.pin  = LEFT_BUTTON_PIN;
+    buttonConfig.port = LEFT_BUTTON_PORT;
+    Button_init(Left, &buttonConfig);
+
+    // Configuration for the RIGHT button
+    buttonConfig.pin  = RIGHT_BUTTON_PIN;
+    buttonConfig.port = RIGHT_BUTTON_PORT;
+    Button_init(Right, &buttonConfig);
+
+    // Configuration for the OK (Rotate) button
+    buttonConfig.pin  = ROTATE_OK_BUTTON_PIN;
+    buttonConfig.port = ROTATE_OK_BUTTON_PORT;
+    Button_init(Rotate_Ok, &buttonConfig);
+}
+
+
+static void Buttons_Tetris_ubdateInputState()
+{
+    Button_updateState();
+}
+
+static boolean Buttons_Tetris_checkAction_Up()
+{
+    if(Button_getState(Up) == Button_Pressed_Pending_Read)
+        return TRUE;
+    return FALSE;
+}
+
+static boolean Buttons_Tetris_checkAction_Down()
+{
+    if(Button_getState(Down) == Button_Pressed_Pending_Read)
+        return TRUE;
+    return FALSE;
+}
+
+static boolean Buttons_Tetris_checkAction_Right()
+{
+    if(Button_getState(Right) == Button_Pressed_Pending_Read)
+        return TRUE;
+    return FALSE;
+}
+
+static boolean Buttons_Tetris_checkAction_Left()
+{
+    if(Button_getState(Left) == Button_Pressed_Pending_Read)
+        return TRUE;
+    return FALSE;
+}
+
+static boolean Buttons_Tetris_checkAction_Ok()
+{
+    if(Button_getState(Rotate_Ok) == Button_Pressed_Pending_Read)
+        return TRUE;
+    return FALSE;
+}
+
+static boolean Buttons_Tetris_checkAction_Rotate()
+{
+    if(Button_getState(Rotate_Ok) == Button_Pressed_Pending_Read)
+        return TRUE;
+    return FALSE;
+}
+
+static boolean Buttons_Tetris_checkAction_Drob_Down()
+{
+    if(Button_getState(Up) == Button_Pressed_Pending_Read)
+        return TRUE;
+    return FALSE;
+}
+
+Tetris_Controller_t Tetris_Buttons_1 =
+{
+        Buttons_Tetris_initController,
+        Buttons_Tetris_ubdateInputState,
+        Buttons_Tetris_checkAction_Up,
+        Buttons_Tetris_checkAction_Down,
+        Buttons_Tetris_checkAction_Right,
+        Buttons_Tetris_checkAction_Left,
+        Buttons_Tetris_checkAction_Ok,
+        Buttons_Tetris_checkAction_Rotate,
+        Buttons_Tetris_checkAction_Drob_Down
+};

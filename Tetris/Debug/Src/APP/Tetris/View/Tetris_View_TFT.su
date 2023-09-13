@@ -1,0 +1,9 @@
+../Src/APP/Tetris/View/Tetris_View_TFT.c:16:6:Tetris_View_initView	8	static
+../Src/APP/Tetris/View/Tetris_View_TFT.c:23:6:Tetris_View_renderWelcomeScreenStaticElements	32	static
+../Src/APP/Tetris/View/Tetris_View_TFT.c:39:6:Tetris_View_renderWelcomeScreenDynamicElements	56	static
+../Src/APP/Tetris/View/Tetris_View_TFT.c:60:6:Tetris_View_renderTopScoresScreenStaticElements	48	static
+../Src/APP/Tetris/View/Tetris_View_TFT.c:87:6:Tetris_View_renderNameInputScreenStaticElements	56	static
+../Src/APP/Tetris/View/Tetris_View_TFT.c:102:6:Tetris_View_renderNameInputScreenDynamicElements	40	static
+../Src/APP/Tetris/View/Tetris_View_TFT.c:117:6:Tetris_View_renderGameScreenStaticElements	72	static
+../Src/APP/Tetris/View/Tetris_View_TFT.c:147:6:Tetris_View_renderGameScreenDynamicElements	40	static
+../Src/APP/Tetris/View/Tetris_View_TFT.c:177:6:Tetris_View_renderGameOverScreenStaticElements	72	static

@@ -1,0 +1,63 @@
+/*************************************************************************/
+/* Authors     : Ibrahim Diab                                            */
+/* File Name   : main.c                                                  */
+/* Description : The main application for a Tetris game                  */
+/*************************************************************************/
+
+#define MCU STM32F103C6
+
+#include <STM32F103x.h>
+
+#include <LIB/std_types.h>
+#include <LIB/common_macros.h>
+
+#include "../Inc/MCAL/RCC/RCC_interface.h"
+#include "../Inc/MCAL/STK/STK_interface.h"
+#include "../Inc/MCAL/GPT/GPT_interface.h"
+
+
+#include "../Inc/HAL/Button/Button_interface.h"
+#include "../Inc/HAL/TFT/TFT_interface.h"
+
+#include "../Inc/APP/Tetris/Model/Tetris_Model.h"
+#include "../Inc/APP/Tetris/View/Tetris_View.h"
+#include "../Inc/APP/Tetris/Controller/Tetris_Controller.h"
+
+extern Tetris_Controller_t   Tetris_Buttons_1;
+extern Tetris_View_t         Tetris_TFT_ST1_8;
+
+
+uint16 getRandNum(void);
+
+int main(void)
+{
+    RCC_initSysClk();
+    STK_init();
+    GPT_initTickTimer(MILLI_SEC);
+
+    Tetris_Model_t Tetris_1;
+    Dependencies_t Tetris_dependencies =
+    {
+        GPT_getTicks,
+        getRandNum
+    };
+
+
+    Tetris_Model_init(&Tetris_1, &Tetris_dependencies);
+    Tetris_Controller_init (&Tetris_Buttons_1);
+    Tetris_View_init       (&Tetris_TFT_ST1_8);
+
+    while(1)
+    {
+        Tetris_View_handler(&Tetris_1, &Tetris_TFT_ST1_8);
+        Tetris_Controller_handle(&Tetris_1, &Tetris_Buttons_1);
+    }
+
+return 0;
+}
+
+
+uint16 getRandNum(void)
+{
+    return GPT_getRemainingTime(TICK_TIMER_ID);
+}

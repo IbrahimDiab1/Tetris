@@ -1,0 +1,207 @@
+/******************************************************************************/
+/* Author      : Ibrahim Diab                                                 */
+/* File Name   : Tetris_View_TFT.c                                            */
+/* Description : Functions and configurations for rendering the graphical     */
+/*               user interface of a Tetris game on a TFT display             */
+/******************************************************************************/
+
+
+#include "TFT_interface.h"
+
+#include "Tetris_View.h"
+#include "Tetris_Model.h"
+
+#include "Tetris_View_TFT.h"
+
+void Tetris_View_initView()
+{
+    // Initialize the TFT display and set its background color to black.
+    TFT_init();
+    TFT_fillColor(TFT_COLOR_BLACK);
+}
+
+void Tetris_View_renderWelcomeScreenStaticElements()
+{
+    // Display the static elements of the welcome screen.
+
+    const uint8 Text []= "TETRIS";
+
+    // Fill the screen with the specified background color.
+    TFT_fillColor(WELCOME_SCR_BACKGROUND_COLOR);
+
+    // Print the game title at the specified position.
+    TFT_printString(WELCOME_SCR_TITLE_POS, Text, WELCOME_SCR_TITLE_SIZE, WELCOME_SCR_TEXT_COLOR, WELCOME_SCR_BACKGROUND_COLOR, 6);
+
+    // Draw an outline rectangle to frame the screen.
+    TFT_drawOutlineRectangle(WELCOME_SCR_FRAME_POS, TFT_WIDTH-1, TFT_HIGHT-1, WELCOME_SCR_FRAME_COLOR, 2);
+}
+
+void Tetris_View_renderWelcomeScreenDynamicElements(Tetris_Model_t *model)
+{
+    // Display the dynamic elements of the welcome screen based on the selected option.
+
+    const uint8 Text1 []= "Play";
+    const uint8 Text2 []= "Top Score";
+
+    if(model->selectedOption == OPTION_PLAY)
+    {
+        // Highlight the "Play" option.
+        TFT_printString(WELCOME_SCR_PLAY_POS,  Text1, WELCOME_SCR_CHOICE_SIZE, WELCOME_SCR_SELECT_COLOR, WELCOME_SCR_BACKGROUND_COLOR, 6);
+        TFT_printString(WELCOME_SCR_SCORE_POS, Text2, WELCOME_SCR_CHOICE_SIZE, WELCOME_SCR_TEXT_COLOR  , WELCOME_SCR_BACKGROUND_COLOR, 6);
+    }
+    else if(model->selectedOption == OPTION_TOP_SCORES)
+    {
+        // Highlight the "Top Score" option.
+        TFT_printString(WELCOME_SCR_PLAY_POS,  Text1, WELCOME_SCR_CHOICE_SIZE, WELCOME_SCR_TEXT_COLOR  , WELCOME_SCR_BACKGROUND_COLOR, 4);
+        TFT_printString(WELCOME_SCR_SCORE_POS, Text2, WELCOME_SCR_CHOICE_SIZE, WELCOME_SCR_SELECT_COLOR, WELCOME_SCR_BACKGROUND_COLOR, 9);
+    }
+}
+
+void Tetris_View_renderTopScoresScreenStaticElements(Tetris_Model_t *model)
+{
+    // Display the static elements of the top scores screen.
+
+    const uint8 text[] = "Top Players";
+
+    // Fill the screen with the specified background color.
+    TFT_fillColor(NAME_INPUT_SCR_BACKGROUND_COLOR);
+
+    // Draw a horizontal line to separate the title.
+    TFT_drawHorizontalLine(0, TOP_SCORE_SCR_V_LINE_POS_Y, TFT_WIDTH, TOP_SCORE_SCR_TEXT_COLOR, 2);
+
+    // Print the title at the specified position.
+    TFT_printString(TOP_SCORE_SCR_TITLE_POS, text, 1, TOP_SCORE_SCR_TEXT_COLOR, TOP_SCORE_SCR_BACKGROUND_COLOR, 12);
+
+    // Display top player information.
+    uint8 playerIndex = Current_Tetris_Player;
+
+    for(int8 playerIndex = Current_Tetris_Player-1; playerIndex>=0; playerIndex--)
+    {
+        // Print player rank, name, and score.
+        TFT_printNumbers(10, TOP_SCORE_SCR_FIRST_PLAYER_POS_Y +(playerIndex * 10), (playerIndex+1), 1, TOP_SCORE_SCR_TEXT_COLOR, TOP_SCORE_SCR_BACKGROUND_COLOR, 2);
+        TFT_printString (30, TOP_SCORE_SCR_FIRST_PLAYER_POS_Y +(playerIndex * 10), Tetris_Player[playerIndex].name , 1,  TOP_SCORE_SCR_TEXT_COLOR, TOP_SCORE_SCR_BACKGROUND_COLOR, 8);
+        TFT_printNumbers(90, TOP_SCORE_SCR_FIRST_PLAYER_POS_Y +(playerIndex * 10), Tetris_Player[playerIndex].score, 1,  TOP_SCORE_SCR_TEXT_COLOR, TOP_SCORE_SCR_BACKGROUND_COLOR, 5);
+    }
+}
+
+void Tetris_View_renderNameInputScreenStaticElements(Tetris_Model_t *model)
+{
+    const uint8 Text []= "Player Name :";
+
+    // Fill the screen with the specified background color.
+    TFT_fillColor(NAME_INPUT_SCR_BACKGROUND_COLOR);
+
+    // Print the title at the specified position.
+    TFT_printString(NAME_INPUT_SCR_TITLE_POS, Text, NAME_INPUT_SCR_TITLE_SIZE, NAME_INPUT_SCR_TEXT_COLOR, NAME_INPUT_SCR_BACKGROUND_COLOR, 13);
+
+    // Draw an outline rectangle to frame the screen.
+    TFT_drawOutlineRectangle(NAME_INPUT_SCR_FRAME_POS, TFT_WIDTH, TFT_HIGHT, NAME_INPUT_SCR_FRAME_COLOR, 2);
+}
+
+
+void Tetris_View_renderNameInputScreenDynamicElements(Tetris_Model_t *model)
+{
+    for(uint8 charIndex=0; charIndex < MAX_PLAYER_NAME_LENGTH; charIndex++)
+    {
+        // Check if the current character is selected.
+        if(charIndex == model->selectedChar)
+            // Highlight the selected letter.
+            TFT_printChar(NAME_INPUT_SCR_FIRST_CHAR_POS_X +(charIndex*(NAME_INPUT_SCR_NAME_SIZE*TFT_CHAR_WIDTH)), NAME_INPUT_SCR_FIRST_CHAR_POS_Y, Tetris_Player[Current_Tetris_Player].name[charIndex], NAME_INPUT_SCR_NAME_SIZE, NAME_INPUT_SCR_SELECT_COLOR, NAME_INPUT_SCR_BACKGROUND_COLOR);
+        else
+            // print the letter.
+            TFT_printChar(NAME_INPUT_SCR_FIRST_CHAR_POS_X +(charIndex*(NAME_INPUT_SCR_NAME_SIZE*TFT_CHAR_WIDTH)), NAME_INPUT_SCR_FIRST_CHAR_POS_Y, Tetris_Player[Current_Tetris_Player].name[charIndex], NAME_INPUT_SCR_NAME_SIZE, NAME_INPUT_SCR_TEXT_COLOR, NAME_INPUT_SCR_BACKGROUND_COLOR);
+    }
+}
+
+
+void Tetris_View_renderGameScreenStaticElements(Tetris_Model_t *model)
+{
+    const uint8 Text1 []= "Score";
+    const uint8 Text2 []= "Level";
+    const uint8 Text3 []= "HI-Score";
+    const uint8 Text4 []= "Tetris";
+
+    // Fill the screen with the specified background color.
+    TFT_fillColor(GAME_SCR_BACKGROUND_COLOR);
+
+    // Print the game title.
+    TFT_printString(GAME_SCR_TITLE_POS, Text4, GAME_SCR_TEXT_SIZE *3, GAME_SCR_TEXT_COLOR, GAME_SCR_BACKGROUND_COLOR, 6);
+
+    // Draw frames for the game grid and data.
+    TFT_drawOutlineRectangle(GAME_SCR_GRID_POS, 62, 123, GAME_SCR_FRAME_COLOR, 1);
+    TFT_drawOutlineRectangle(GAME_SCR_DATA_FRAME_POS, 55, 123, GAME_SCR_FRAME_COLOR, 1);
+
+    // Print the player's name.
+    TFT_printString(GAME_SCR_PLAYER_NAME_POS, Tetris_Player[Current_Tetris_Player].name, GAME_SCR_TEXT_SIZE, GAME_SCR_TEXT_COLOR, GAME_SCR_BACKGROUND_COLOR, MAX_PLAYER_NAME_LENGTH);
+
+    // Print labels for score, level, and HI-Score.
+    TFT_printString(GAME_SCR_SCORE_POS   , Text1, GAME_SCR_TEXT_SIZE, GAME_SCR_TEXT_COLOR, GAME_SCR_BACKGROUND_COLOR, 5);
+    TFT_printString(GAME_SCR_LEVEL_POS   , Text2, GAME_SCR_TEXT_SIZE, GAME_SCR_TEXT_COLOR, GAME_SCR_BACKGROUND_COLOR, 5);
+    TFT_printString(GAME_SCR_HI_SCORE_POS, Text3, GAME_SCR_TEXT_SIZE, GAME_SCR_TEXT_COLOR, GAME_SCR_BACKGROUND_COLOR, 8);
+
+    // Print the player's HI-Score.
+    TFT_printNumbers(GAME_SCR_HI_SCORE_VAL_POS, Tetris_Player[0].score, GAME_SCR_TEXT_SIZE, GAME_SCR_TEXT_COLOR, GAME_SCR_BACKGROUND_COLOR, 5);
+}
+
+
+void Tetris_View_renderGameScreenDynamicElements(Tetris_Model_t *model)
+{
+    // Print the player's current score.
+    TFT_printNumbers(GAME_SCR_SCORE_VAL_POS, Tetris_Player[Current_Tetris_Player].score, GAME_SCR_TEXT_SIZE, GAME_SCR_TEXT_VALUE_COLOR, GAME_SCR_BACKGROUND_COLOR, 6);
+
+    // Print the player's current level.
+    TFT_printNumbers(GAME_SCR_LEVEL_VAL_POS, model->currentLevel, GAME_SCR_TEXT_SIZE, GAME_SCR_TEXT_VALUE_COLOR, GAME_SCR_BACKGROUND_COLOR, 3);
+
+    // Check if a refresh is needed.
+    if(model->refreshFlag)
+    {
+        for(uint8 gridRows =0; gridRows < GRID_ROWS; gridRows++)
+            for(uint8 gridColumns =0; gridColumns < GRID_COLUMNS; gridColumns++)
+                if(model->grid[gridRows][gridColumns])
+                    // Draw blocks with the specified block color.
+                    TFT_drawRectangle(GAME_SCR_FIRST_BLOCK_POS_X + (gridColumns * (1+GAME_SCR_BLOCK_SIZE)), GAME_SCR_FIRST_BLOCK_POS_Y + (gridRows * (1+ GAME_SCR_BLOCK_SIZE)), GAME_SCR_BLOCK_SIZE, GAME_SCR_BLOCK_SIZE, GAME_SCR_BLOCK_COLOR);
+                else
+                    // Draw empty spaces with the background color.
+                    TFT_drawRectangle(GAME_SCR_FIRST_BLOCK_POS_X + (gridColumns * (1+GAME_SCR_BLOCK_SIZE)), GAME_SCR_FIRST_BLOCK_POS_Y + (gridRows * (1+ GAME_SCR_BLOCK_SIZE)), GAME_SCR_BLOCK_SIZE, GAME_SCR_BLOCK_SIZE, GAME_SCR_BACKGROUND_COLOR);
+
+        // Draw the current moving object.
+        for(uint8 blockIndex=0; blockIndex < 4; blockIndex++)
+            TFT_drawRectangle(GAME_SCR_FIRST_BLOCK_POS_X + (model->currentMovingObject.block[blockIndex].x * (1+GAME_SCR_BLOCK_SIZE)), GAME_SCR_FIRST_BLOCK_POS_Y + (model->currentMovingObject.block[blockIndex].y * (1+ GAME_SCR_BLOCK_SIZE)), GAME_SCR_BLOCK_SIZE, GAME_SCR_BLOCK_SIZE, GAME_SCR_BLOCK_COLOR);
+
+        // Clear the refresh flag.
+        model->refreshFlag = FALSE;
+    }
+}
+
+
+void Tetris_View_renderGameOverScreenStaticElements(Tetris_Model_t *model)
+{
+    const uint8 Text1 []= "GAME OVER";
+    const uint8 Text2 []= "Your Score: ";
+
+    // Draw the background frame.
+    TFT_drawRectangle(GAME_OVER_SCR_FRAME_POS, TFT_WIDTH, TFT_HIGHT, GAME_OVER_SCR_BACKGROUND_COLOR);
+
+    // Print the "GAME OVER" text.
+    TFT_printString(GAME_OVER_SCR_GAME_OVER_TEXT_POS, Text1, GAME_OVER_SCR_GAME_OVER_TEXT_SIZE, GAME_OVER_SCR_TEXT_COLOR, GAME_OVER_SCR_BACKGROUND_COLOR, 9);
+
+    // Print the "Your Score:" text.
+    TFT_printString(GAME_OVER_SCR_SCORE_TEXT_POS, Text2, GAME_OVER_SCR_SCORE_SIZE, GAME_OVER_SCR_TEXT_COLOR, GAME_OVER_SCR_BACKGROUND_COLOR, 12);
+
+    // Print the player's score.
+    TFT_printNumbers(GAME_OVER_SCR_SCORE_VAL_POS, Tetris_Player[Current_Tetris_Player].score, GAME_OVER_SCR_SCORE_SIZE, GAME_OVER_SCR_TEXT_COLOR, GAME_OVER_SCR_BACKGROUND_COLOR, 5);
+}
+
+
+Tetris_View_t Tetris_TFT_ST1_8 =
+{
+    Tetris_View_initView,
+    Tetris_View_renderWelcomeScreenStaticElements,
+    Tetris_View_renderWelcomeScreenDynamicElements,
+    Tetris_View_renderTopScoresScreenStaticElements,
+    Tetris_View_renderNameInputScreenStaticElements,
+    Tetris_View_renderNameInputScreenDynamicElements,
+    Tetris_View_renderGameScreenStaticElements,
+    Tetris_View_renderGameScreenDynamicElements,
+    Tetris_View_renderGameOverScreenStaticElements
+};

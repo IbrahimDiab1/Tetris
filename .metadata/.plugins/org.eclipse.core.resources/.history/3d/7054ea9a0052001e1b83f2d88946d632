@@ -1,0 +1,734 @@
+/****************************************************************************************/
+/* Author      : Ibrahim Diab                                                           */
+/* File Name   : Tetris_Model.c                                                         */
+/* Description : File responsible for managing game state, player data, and game logic  */
+/****************************************************************************************/
+
+#include <LIB/common_macros.h>
+#include <LIB/std_types.h>
+#include "Tetris_Model.h"
+
+Tetris_Player_t Tetris_Player[MAX_PLAYERS];    // Array to store Tetris player data.
+uint8 Current_Tetris_Player;                   // Index of the current Tetris player.
+
+void initTetrisModel(Tetris_Model_t *model, Dependencies_t *dependencies)
+{
+    // Initialize model dependencies with external functions.
+    model->dependencies.getRandomNumber = dependencies->getRandomNumber;
+    model->dependencies.getTime = dependencies->getTime;
+
+    // Clear the Tetris grid blocks.
+    cleargridBlocks(model);
+
+    // Initialize the current level.
+    model->currentLevel = 1;
+
+    // Initialize the current player's score and name.
+    Tetris_Player[Current_Tetris_Player].score = 0;
+    for (uint8 charIndex = 0; charIndex < MAX_PLAYER_NAME_LENGTH; charIndex++)
+        Tetris_Player[Current_Tetris_Player].name[charIndex] = '-';
+
+    // Initialize the selected option, level, and rotation state.
+    model->selectedOption = OPTION_PLAY;
+    model->rotateState    = ORIENTATION_0;
+
+    // Initialize the current and previous game states.
+    model->currentGameState  = State_Welcome; // State_Welcome is defined in Tetris_Controller.h
+    model->previousGameState = State_Null;    // State_Null is an undefined state.
+}
+
+
+// Clears all blocks in the game grid.
+void cleargridBlocks(Tetris_Model_t *model)
+{
+    for(uint8 row = 0; row < GRID_ROWS; row++)
+        for(uint8 column = 0; column < GRID_COLUMNS; column++)
+            model->grid[row][column] = 0;                       // Set the grid cell to empty (0).
+}
+
+// Checks if the current moving object is stable (cannot move down further).
+boolean isMovingObjectStable(Tetris_Model_t *model)
+{
+    boolean result = FALSE;
+
+    for(uint8 blockIndex = 0; blockIndex < OBJECT_BLOCKS_COUNT; blockIndex++)
+    {
+        if((model->grid[(model->currentMovingObject.block[blockIndex].y + 1)][model->currentMovingObject.block[blockIndex].x] != 0) ||
+           (model->currentMovingObject.block[blockIndex].y + 1) > (GRID_ROWS - 1))
+        {
+            // The object is stable because it cannot move down further.
+            result = TRUE;
+
+            // Increase the player's score based on the stable object and current level.
+            Tetris_Player[Current_Tetris_Player].score += (STABLE_OBJECT_SCORE * model->currentLevel);
+
+            break;
+        }
+    }
+
+    return result;
+}
+
+
+// Checks if the game is over by examining the top row of the grid.
+boolean isGameOver(Tetris_Model_t *model)
+{
+    boolean result = FALSE;
+
+    for(uint8 blockIndex = 0; blockIndex < GRID_COLUMNS; blockIndex++)
+    {
+        if(model->grid[0][blockIndex] != 0)
+        {
+            // The game is over because there are blocks in the top row of the grid.
+            result = TRUE;
+            break;
+        }
+    }
+
+    return result;
+}
+
+// Sorts the player scores in descending order.
+void sortPlayers()
+{
+    if(Current_Tetris_Player > 0)
+    {
+        Tetris_Player_t temp = Tetris_Player[Current_Tetris_Player];
+        int index = Current_Tetris_Player - 1;
+
+        while(index >= 0 && temp.score > Tetris_Player[index].score)
+        {
+            Tetris_Player[index + 1] = Tetris_Player[index];
+            index--;
+        }
+
+        Tetris_Player[index + 1] = temp;
+    }
+}
+
+
+// This function handles the periodic downward movement of the current object in the game.
+// It calculates the time since the last move and, if the specified period has elapsed,
+// either updates the game state or moves the object down.
+boolean handlePeriodicMoveDown(Tetris_Model_t *model)
+{
+    uint32 currentTime = model->dependencies.getTime();
+
+    // Check if enough time has passed since the last move down.
+    if ((currentTime - model->lastMoveTime) > (MOVE_DOWN_PERIOD - (model->currentLevel * 50)))
+    {
+        model->refreshFlag = TRUE;
+        model->lastMoveTime = currentTime;
+
+        // Try to update the game play or move the object down.
+        if (updateGamePlay(model))
+        {
+            // Object is stable, update the game state and create another random moving object.
+        }
+        else
+        {
+            // Move the object down.
+            moveObject(model, Action_Move_Down);
+        }
+
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+// This function updates the game state during game play.
+// It checks if the current moving object is stable, adds it to the grid if so,
+// checks for completed lines, and handles game over or continues with a new object.
+boolean updateGamePlay(Tetris_Model_t *model)
+{
+    if (isMovingObjectStable(model))
+    {
+        model->refreshFlag = TRUE;
+
+        // Add the stable moving object to the grid.
+        addMovingObjectToGrid(model);
+
+        // Check for completed lines and clear them.
+        checkAndClearLines(model);
+
+        // Check if the game is over.
+        if (isGameOver(model))
+            model->currentGameState = State_Game_Over;  // Game over condition, change the game state.
+
+        else
+            createRandObject(model);                    // Continue the game by creating a new random object.
+
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+
+// This function creates a random Tetris game object and initializes its properties.
+void createRandObject(Tetris_Model_t *model)
+{
+    uint16 randNum = model->dependencies.getRandomNumber();
+
+    model->CurrentObjectType = (uint8)(randNum % (OBJECT_COUNT));
+    model->rotateState = ORIENTATION_0;
+
+    for (uint8 blockIndex = 0; blockIndex < OBJECT_BLOCKS_COUNT; blockIndex++)
+    {
+        // Set the initial coordinates for each block of the object.
+        model->currentMovingObject.block[blockIndex].x = initialObjectsCoordinates[model->CurrentObjectType].block[blockIndex].x;
+        model->currentMovingObject.block[blockIndex].y = initialObjectsCoordinates[model->CurrentObjectType].block[blockIndex].y;
+    }
+}
+
+
+// This function resets the Tetris game to its initial state.
+void resetGame(Tetris_Model_t *model)
+{
+    // Clear the grid blocks and sort the player scores.
+    cleargridBlocks(model);
+    sortPlayers();
+
+    // Move to the next player or wrap around if at the last player.
+    Current_Tetris_Player++;
+    if (Current_Tetris_Player >= MAX_PLAYERS)
+        Current_Tetris_Player = MAX_PLAYERS - 1;
+
+    // Reset the game properties for the new player.
+    model->currentLevel = 1;
+    Tetris_Player[Current_Tetris_Player].score = 0;
+
+    // Initialize the player's name with place holders.
+    for (uint8 charIndex = 0; charIndex < MAX_PLAYER_NAME_LENGTH; charIndex++)
+        Tetris_Player[Current_Tetris_Player].name[charIndex] = '-';
+
+    // Reset other game state variables.
+    model->selectedOption = OPTION_PLAY;
+    model->rotateState    = ORIENTATION_0;
+    model->currentLevel   = 1;
+
+}
+
+
+// This function moves the current Tetris game object based on the user's action.
+// It validates the move and updates the object's position accordingly.
+void moveObject(Tetris_Model_t *model, UserAction action)
+{
+    boolean MovingValidation = TRUE;
+
+    // Check the user's action and update the object's position accordingly.
+    switch (action)
+    {
+        case Action_Move_Down:
+            // Check if the object can move down and update its position.
+            for (uint8 blockIndex = 0; blockIndex < OBJECT_BLOCKS_COUNT; blockIndex++)
+            {
+                if ((model->grid[(model->currentMovingObject.block[blockIndex].y + 1)][model->currentMovingObject.block[blockIndex].x] != 0) ||
+                    (model->currentMovingObject.block[blockIndex].y == (GRID_ROWS - 1)))
+                {
+                    MovingValidation = FALSE;
+                    break;
+                }
+            }
+
+            // Move object down if it is valid.
+            if (MovingValidation)
+                for (uint8 blockIndex = 0; blockIndex < OBJECT_BLOCKS_COUNT; blockIndex++)
+                    model->currentMovingObject.block[blockIndex].y++;
+
+
+            break;
+
+        case Action_Move_Right:
+            // Check if the object can move right and update its position.
+            for (uint8 blockIndex = 0; blockIndex < OBJECT_BLOCKS_COUNT; blockIndex++)
+            {
+                if ((model->grid[model->currentMovingObject.block[blockIndex].y][(model->currentMovingObject.block[blockIndex].x) + 1] != 0) ||
+                    (model->currentMovingObject.block[blockIndex].x == (GRID_COLUMNS - 1)))
+                {
+                    MovingValidation = FALSE;
+                    break;
+                }
+            }
+
+            // Move object right if it is valid.
+            if (MovingValidation)
+                for (uint8 blockIndex = 0; blockIndex < OBJECT_BLOCKS_COUNT; blockIndex++)
+                    model->currentMovingObject.block[blockIndex].x++;
+
+            break;
+
+        case Action_Move_Left:
+            // Check if the object can move left and update its position.
+            for (uint8 blockIndex = 0; blockIndex < OBJECT_BLOCKS_COUNT; blockIndex++)
+            {
+                if ((model->grid[model->currentMovingObject.block[blockIndex].y][(model->currentMovingObject.block[blockIndex].x) - 1] != 0) ||
+                    (model->currentMovingObject.block[blockIndex].x == 0))
+                {
+                    MovingValidation = FALSE;
+                    break;
+                }
+            }
+
+            // Move object left if it is valid.
+            if (MovingValidation)
+                for (uint8 blockIndex = 0; blockIndex < OBJECT_BLOCKS_COUNT; blockIndex++)
+                    model->currentMovingObject.block[blockIndex].x--;
+
+            break;
+
+        case Action_Drop_Down:
+            // Drop the object down as far as possible.
+            uint8 counter = 0;
+            do
+            {
+                for (uint8 blockIndex = 0; blockIndex < OBJECT_BLOCKS_COUNT; blockIndex++)
+                {
+                    if ((model->grid[(model->currentMovingObject.block[blockIndex].y + 1 + counter)][model->currentMovingObject.block[blockIndex].x] != 0) ||
+                        (model->currentMovingObject.block[blockIndex].y + 1 + counter) == GRID_ROWS)
+                    {
+                        MovingValidation = FALSE;
+                        break;
+                    }
+                }
+
+                if (MovingValidation)
+                    counter++;
+
+            } while (MovingValidation);
+
+            // Move object down until it becomes stable.
+            if (counter)
+                for (uint8 blockIndex = 0; blockIndex < OBJECT_BLOCKS_COUNT; blockIndex++)
+                    model->currentMovingObject.block[blockIndex].y += counter;
+
+            break;
+    }
+
+    // If the move was valid, set the refresh flag to update the game screen.
+    if (MovingValidation)
+        model->refreshFlag = TRUE;
+
+}
+
+// This function adds the current moving Tetris object to the game grid.
+void addMovingObjectToGrid(Tetris_Model_t *model)
+{
+    // Set the grid cell corresponding to the object's block to 1.
+    for (uint8 blockIndex = 0; blockIndex < OBJECT_BLOCKS_COUNT; blockIndex++)
+        model->grid[model->currentMovingObject.block[blockIndex].y][model->currentMovingObject.block[blockIndex].x] = 1;
+}
+
+
+// This function checks for and clears completed lines in the game grid.
+void checkAndClearLines(Tetris_Model_t *model)
+{
+    uint8 rowsToclean[GRID_ROWS];
+    uint8 rowsCounter = 0;
+
+    // Iterate through each row in the grid.
+    for (uint8 row = GRID_ROWS - 1; row > 0; row--)
+    {
+        rowsToclean[row] = TRUE;
+
+        // Check if the entire row is filled with blocks.
+        for (uint8 column = 0; column < GRID_COLUMNS; column++)
+        {
+            if (model->grid[row][column] == 0)
+            {
+                rowsToclean[row] = FALSE;
+                break;
+            }
+        }
+    }
+
+    // Iterate through each row in the grid again to clear completed lines and move the rows above down.
+    for (uint8 row = GRID_ROWS - 1; row > 0; row--)
+    {
+        if (rowsToclean[row])
+            rowsCounter++;
+        else
+        {
+            // Move the rows above the completed line down.
+            for (uint8 column = 0; column < GRID_COLUMNS; column++)
+                if (rowsCounter)
+                    model->grid[row + rowsCounter][column] = model->grid[row][column];
+        }
+    }
+
+    // Update the player's score based on the cleared lines.
+    Tetris_Player[Current_Tetris_Player].score += (LINE_CLEAR_SCORE * rowsCounter);
+
+    if(rowsCounter)
+        model->refreshFlag = TRUE;
+
+    // Clear the rows in the top of grid.
+    while (rowsCounter--)
+    {
+        for (uint8 row = GRID_ROWS - 1; row > 0; row--)
+            for (uint8 column = 0; column < GRID_COLUMNS; column++)
+                model->grid[rowsCounter][column] = 0;
+    }
+}
+
+// This function rotates the current moving Tetris object within the game grid.
+void rotateObject(Tetris_Model_t *model)
+{
+    Tetris_Object_t TempObject;
+    int ShiftValue = 0;
+    boolean RotateValidation = TRUE;
+
+    // Create a temporary object to hold the rotated state.
+    for (uint8 blockIndex = 0; blockIndex < OBJECT_BLOCKS_COUNT; blockIndex++)
+    {
+        TempObject.block[blockIndex].x = model->currentMovingObject.block[blockIndex].x;
+        TempObject.block[blockIndex].y = model->currentMovingObject.block[blockIndex].y;
+    }
+
+    switch (model->CurrentObjectType)
+    {
+        case Object_A:
+            // Object A (cube) doesn't rotate, so do nothing.
+            break;
+
+        case Object_B:
+            switch (model->rotateState)
+            {
+                case ORIENTATION_0:
+                    // Rotate Object B to 90 degrees.
+                    for (uint8 blockIndex = 0; blockIndex < OBJECT_BLOCKS_COUNT; blockIndex++)
+                    {
+                        TempObject.block[blockIndex].x = model->currentMovingObject.block[2].x;
+                        TempObject.block[blockIndex].y = model->currentMovingObject.block[0].y + blockIndex;
+                    }
+                    break;
+
+                case ORIENTATION_90:
+                    // Rotate Object B back to 0 degrees.
+                    for (uint8 blockIndex = 0; blockIndex < OBJECT_BLOCKS_COUNT; blockIndex++)
+                    {
+                        TempObject.block[blockIndex].x = model->currentMovingObject.block[2].x - 2 + blockIndex;
+                        TempObject.block[blockIndex].y = model->currentMovingObject.block[0].y;
+                    }
+                    break;
+            }
+            break;
+            
+        case Object_C :
+                switch(model->rotateState)
+                {
+                    case ORIENTATION_0 :
+                        // Rotate Object B to 90 degrees.
+                        TempObject.block[0].x = TempObject.block[0].x;
+                        TempObject.block[0].y = TempObject.block[1].y;
+                        
+                        for(uint8 blockIndex=1; blockIndex < OBJECT_BLOCKS_COUNT; blockIndex++)
+                        {
+                            TempObject.block[blockIndex].x = model->currentMovingObject.block[2].x;
+                            TempObject.block[blockIndex].y = model->currentMovingObject.block[1].y + blockIndex -1;
+                        }
+                        break;
+                    
+                    case ORIENTATION_90 :
+                        // Rotate Object B to 180 degrees.
+                        TempObject.block[0].x = TempObject.block[1].x + 1;
+                        TempObject.block[0].y = TempObject.block[0].y;
+                        
+                        for(uint8 blockIndex=1; blockIndex < OBJECT_BLOCKS_COUNT; blockIndex++)
+                        {
+                            TempObject.block[blockIndex].x = model->currentMovingObject.block[1].x +2 - blockIndex;
+                            TempObject.block[blockIndex].y = model->currentMovingObject.block[2].y;
+                        }                   
+                        break;
+                        
+                    case ORIENTATION_180 :
+                        // Rotate Object B to 270 degrees.
+                        TempObject.block[0].x = TempObject.block[0].x;
+                        TempObject.block[0].y = TempObject.block[1].y + 1;
+                        
+                        for(uint8 blockIndex=1; blockIndex < OBJECT_BLOCKS_COUNT; blockIndex++)
+                        {
+                            TempObject.block[blockIndex].x = model->currentMovingObject.block[2].x;
+                            TempObject.block[blockIndex].y = model->currentMovingObject.block[1].y +2 -blockIndex;
+                        }                   
+                        break;
+
+                    case ORIENTATION_270 :
+                        // Rotate Object B to 0 degrees.
+                        TempObject.block[0].x = TempObject.block[1].x - 1;
+                        TempObject.block[0].y = TempObject.block[2].y;
+                        
+                        for(uint8 blockIndex=1; blockIndex < OBJECT_BLOCKS_COUNT; blockIndex++)
+                        {
+                            TempObject.block[blockIndex].x = model->currentMovingObject.block[1].x -2 +blockIndex;
+                            TempObject.block[blockIndex].y = model->currentMovingObject.block[3].y;
+                        }                   
+                        break;                      
+                }
+            break;
+
+        case Object_D :
+
+                switch(model->rotateState)
+                {
+                    case ORIENTATION_0 :
+                        // Rotate Object B to 90 degrees.
+                        TempObject.block[0].x = TempObject.block[2].x;
+                        TempObject.block[0].y = TempObject.block[0].y +1;
+                        
+                        for(uint8 blockIndex=1; blockIndex < OBJECT_BLOCKS_COUNT; blockIndex++)
+                        {
+                            TempObject.block[blockIndex].x = model->currentMovingObject.block[0].x;
+                            TempObject.block[blockIndex].y = model->currentMovingObject.block[0].y +2 - blockIndex;
+                        }
+                        break;
+                    
+                    case ORIENTATION_90 :
+                        // Rotate Object B to 180 degrees.
+                        TempObject.block[0].x = TempObject.block[0].x-1;
+                        TempObject.block[0].y = TempObject.block[3].y;
+                        
+                        for(uint8 blockIndex=1; blockIndex < OBJECT_BLOCKS_COUNT; blockIndex++)
+                        {
+                            TempObject.block[blockIndex].x = model->currentMovingObject.block[0].x -2 +blockIndex;
+                            TempObject.block[blockIndex].y = model->currentMovingObject.block[2].y;
+                        }                   
+                        break;
+                        
+                    case ORIENTATION_180 :
+                        // Rotate Object B to 270 degrees.
+                        TempObject.block[0].x = TempObject.block[3].x;
+                        TempObject.block[0].y = TempObject.block[0].y;
+                        
+                        for(uint8 blockIndex=1; blockIndex < OBJECT_BLOCKS_COUNT; blockIndex++)
+                        {
+                            TempObject.block[blockIndex].x = model->currentMovingObject.block[2].x;
+                            TempObject.block[blockIndex].y = model->currentMovingObject.block[1].y -2 +blockIndex;
+                        }                   
+                        break;
+
+                    case ORIENTATION_270 :
+                        // Rotate Object B to 0 degrees.
+                        TempObject.block[0].x = TempObject.block[0].x;
+                        TempObject.block[0].y = TempObject.block[2].y;
+                        
+                        for(uint8 blockIndex=1; blockIndex < OBJECT_BLOCKS_COUNT; blockIndex++)
+                        {
+                            TempObject.block[blockIndex].x = model->currentMovingObject.block[0].x +1 -blockIndex;
+                            TempObject.block[blockIndex].y = model->currentMovingObject.block[0].y;
+                        }                   
+                        break;                      
+                }       
+            break;
+
+        case Object_E :
+
+                switch(model->rotateState)
+                {
+                    case ORIENTATION_0 :
+                        // Rotate Object B to 90 degrees.
+                        TempObject.block[3].x = TempObject.block[0].x;
+                        TempObject.block[3].y = TempObject.block[3].y;
+                        
+                        for(uint8 blockIndex=0; blockIndex < OBJECT_BLOCKS_COUNT-1; blockIndex++)
+                        {
+                            TempObject.block[blockIndex].x = model->currentMovingObject.block[1].x;
+                            TempObject.block[blockIndex].y = model->currentMovingObject.block[0].y + blockIndex;
+                        }
+                        break;
+                    
+                    case ORIENTATION_90 :
+                        // Rotate Object B to 180 degrees.
+                        TempObject.block[3].x = TempObject.block[0].x;
+                        TempObject.block[3].y = TempObject.block[0].y;
+                        
+                        for(uint8 blockIndex=0; blockIndex < OBJECT_BLOCKS_COUNT-1; blockIndex++)
+                        {
+                            TempObject.block[blockIndex].x = model->currentMovingObject.block[0].x +1 -blockIndex;
+                            TempObject.block[blockIndex].y = model->currentMovingObject.block[1].y;
+                        }                   
+                        break;
+                        
+                    case ORIENTATION_180 :
+                        // Rotate Object B to 270 degrees.
+                        TempObject.block[3].x = TempObject.block[0].x;
+                        TempObject.block[3].y = TempObject.block[0].y;
+                        
+                        for(uint8 blockIndex=0; blockIndex < OBJECT_BLOCKS_COUNT-1; blockIndex++)
+                        {
+                            TempObject.block[blockIndex].x = model->currentMovingObject.block[1].x;
+                            TempObject.block[blockIndex].y = model->currentMovingObject.block[0].y +1 -blockIndex;
+                        }                   
+                        break;
+
+                    case ORIENTATION_270 :
+                        // Rotate Object B to 0 degrees.
+                        TempObject.block[3].x = TempObject.block[0].x;
+                        TempObject.block[3].y = TempObject.block[1].y;
+                        
+                        for(uint8 blockIndex=0; blockIndex < OBJECT_BLOCKS_COUNT-1; blockIndex++)
+                        {
+                            TempObject.block[blockIndex].x = model->currentMovingObject.block[0].x -1 +blockIndex;
+                            TempObject.block[blockIndex].y = model->currentMovingObject.block[2].y;
+                        }                   
+                        break;                      
+                }       
+            break;
+
+        case Object_F :
+
+                switch(model->rotateState)
+                {
+                    case ORIENTATION_0 :
+                        // Rotate Object B to 90 degrees.
+                        for(uint8 blockIndex=0; blockIndex < 2; blockIndex++)
+                        {
+                            TempObject.block[blockIndex].x = model->currentMovingObject.block[1].x;
+                            TempObject.block[blockIndex].y = model->currentMovingObject.block[0].y + blockIndex;
+                        }                       
+                        for(uint8 blockIndex=2; blockIndex < OBJECT_BLOCKS_COUNT; blockIndex++)
+                        {
+                            TempObject.block[blockIndex].x = model->currentMovingObject.block[0].x;
+                            TempObject.block[blockIndex].y = model->currentMovingObject.block[2].y - 2 + blockIndex;
+                        }
+                        break;
+                    
+                    case ORIENTATION_90 :
+                        // Rotate Object B to 0 degrees.
+                        for(uint8 blockIndex=0; blockIndex < 2; blockIndex++)
+                        {
+                            TempObject.block[blockIndex].x = model->currentMovingObject.block[0].x -1 + blockIndex;
+                            TempObject.block[blockIndex].y = model->currentMovingObject.block[0].y;
+                        }                       
+                        for(uint8 blockIndex=2; blockIndex < OBJECT_BLOCKS_COUNT; blockIndex++)
+                        {
+                            TempObject.block[blockIndex].x = model->currentMovingObject.block[0].x -2 + blockIndex;
+                            TempObject.block[blockIndex].y = model->currentMovingObject.block[1].y;
+                        }                   
+                        break;
+                }       
+            break;
+
+        case Object_G :
+
+                switch(model->rotateState)
+                {
+                    case ORIENTATION_0 :
+                        // Rotate Object B to 90 degrees.
+                        for(uint8 blockIndex=0; blockIndex < 2; blockIndex++)
+                        {
+                            TempObject.block[blockIndex].x = model->currentMovingObject.block[0].x;
+                            TempObject.block[blockIndex].y = model->currentMovingObject.block[2].y + blockIndex;
+                        }                       
+                        for(uint8 blockIndex=2; blockIndex < OBJECT_BLOCKS_COUNT; blockIndex++)
+                        {
+                            TempObject.block[blockIndex].x = model->currentMovingObject.block[1].x;
+                            TempObject.block[blockIndex].y = model->currentMovingObject.block[0].y - 2 + blockIndex;
+                        }
+                        break;
+                    
+                    case ORIENTATION_90 :
+                        // Rotate Object B to 0 degrees.
+                        for(uint8 blockIndex=0; blockIndex < 2; blockIndex++)
+                        {
+                            TempObject.block[blockIndex].x = model->currentMovingObject.block[0].x + blockIndex;
+                            TempObject.block[blockIndex].y = model->currentMovingObject.block[1].y;
+                        }                       
+                        for(uint8 blockIndex=2; blockIndex < OBJECT_BLOCKS_COUNT; blockIndex++)
+                        {
+                            TempObject.block[blockIndex].x = model->currentMovingObject.block[0].x -1 + blockIndex;
+                            TempObject.block[blockIndex].y = model->currentMovingObject.block[0].y;
+                        }                   
+                        break;
+                }       
+            break;          
+    }
+
+    // Check if the rotated object is out of bounds.
+    for (uint8 blockIndex = 0; blockIndex < 4; blockIndex++)
+    {
+        if (!(TempObject.block[blockIndex].x >= 0 && TempObject.block[blockIndex].x <= (GRID_COLUMNS - 1)))
+        {
+            RotateValidation = FALSE;
+            break;
+        }
+    }
+
+    // If the rotated object is out of bounds, calculate the shift value.
+    if (!RotateValidation)
+    {
+        for (uint8 blockIndex = 0; blockIndex < OBJECT_BLOCKS_COUNT; blockIndex++)
+        {
+            if (TempObject.block[blockIndex].x < 0)
+            {
+                if (TempObject.block[blockIndex].x < ShiftValue)
+                    ShiftValue = TempObject.block[blockIndex].x;
+            }
+            else if (TempObject.block[blockIndex].x > (GRID_COLUMNS - 1))
+            {
+                if ((TempObject.block[blockIndex].x - (GRID_COLUMNS - 1)) > ShiftValue)
+                    ShiftValue = (TempObject.block[blockIndex].x - (GRID_COLUMNS - 1));
+            }
+        }
+    }
+
+    // Apply the shift value if needed.
+    if (ShiftValue)
+    {
+        for (uint8 blockIndex = 0; blockIndex < OBJECT_BLOCKS_COUNT; blockIndex++)
+            TempObject.block[blockIndex].x -= ShiftValue;
+    }
+
+    RotateValidation = TRUE;
+
+    // Check if the rotated object collides with existing blocks in the grid.
+    for (uint8 blockIndex = 0; blockIndex < OBJECT_BLOCKS_COUNT; blockIndex++)
+    {
+        if (model->grid[TempObject.block[blockIndex].y][TempObject.block[blockIndex].x])
+            RotateValidation = FALSE;
+    }
+
+    // If the rotation is valid, apply it to the current moving object and update its state.
+    if (RotateValidation)
+    {
+        model->refreshFlag = TRUE;
+
+        for (uint8 blockIndex = 0; blockIndex < OBJECT_BLOCKS_COUNT; blockIndex++)
+        {
+            model->currentMovingObject.block[blockIndex].x = TempObject.block[blockIndex].x;
+            model->currentMovingObject.block[blockIndex].y = TempObject.block[blockIndex].y;
+        }
+
+        // Increment the rotation state based on the object type.
+        model->rotateState++;
+
+        switch (model->CurrentObjectType)
+        {
+            case Object_A:
+                break;
+
+            case Object_B:
+            case Object_F:
+            case Object_G:
+                model->rotateState %= 2;
+                break;
+
+            case Object_C:
+            case Object_D:
+            case Object_E:
+                model->rotateState %= 4;
+                break;
+        }
+    }
+}
+
+
+// This function modifies the player's name by replacing hyphens ('-') with spaces (' ').
+void modifyPlayerName()
+{
+    for (uint8 charIndex = 0; charIndex < MAX_PLAYER_NAME_LENGTH; charIndex++)
+        if (Tetris_Player[Current_Tetris_Player].name[charIndex] == '-')
+            Tetris_Player[Current_Tetris_Player].name[charIndex] = ' ';
+}
+

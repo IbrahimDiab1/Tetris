@@ -1,0 +1,55 @@
+/********************************************************************************************/
+/* Author      : Ibrahim Diab                                                               */
+/* File Name   : Tetris_Controller.h                                                        */
+/* Description : This file defines functions and structures for the Tetris game controller. */
+/********************************************************************************************/
+#ifndef _TETRIS_CONTROLLER_H_
+#define _TETRIS_CONTROLLER_H_
+
+#include <LIB/std_types.h>
+#include "../Inc/APP/Tetris/Model/Tetris_Model.h"
+
+typedef struct
+{
+    // Function pointers for controller initialization and input handling.
+    void   (* initController        ) (void);
+    void   (* ubdateInputState      ) (void);
+    boolean(* checkAction_Up        ) (void);
+    boolean(* checkAction_Down      ) (void);
+    boolean(* checkAction_Right     ) (void);
+    boolean(* checkAction_Left      ) (void);
+    boolean(* checkAction_Ok        ) (void);
+    boolean(* checkAction_Rotate    ) (void);
+    boolean(* checkAction_Drob_Down ) (void);
+} Tetris_Controller_t;
+
+
+/************************************** APIs Functions **************************************/
+
+// Function to handle controller input and update the game model.
+void Tetris_Controller_handle(Tetris_Model_t *model, Tetris_Controller_t *controller);
+
+// Function to initialize the Tetris controller.
+void Tetris_Controller_init(Tetris_Controller_t *controller);
+
+
+/************************************** Private Functions **************************************/
+
+// Function to handle the welcome screen.
+static void handleWelcomeScreen(Tetris_Model_t *model, Tetris_Controller_t *controller);
+
+// Function to handle the input name screen.
+static void handleInputNameScreen(Tetris_Model_t *model, Tetris_Controller_t *controller);
+
+// Function to handle the top scores screen.
+static void handleTopScoresScreen(Tetris_Model_t *model, Tetris_Controller_t *controller);
+
+// Function to handle the game screen.
+static void handleGameScreen(Tetris_Model_t *model, Tetris_Controller_t *controller);
+
+// Function to handle the game over screen.
+static void handleGameOverScreen(Tetris_Model_t *model, Tetris_Controller_t *controller);
+
+#endif // _TETRIS_CONTROLLER_H_
+
+

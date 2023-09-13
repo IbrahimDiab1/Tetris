@@ -1,0 +1,353 @@
+/*******************************************************************************************/
+/* Author      : Ibrahim Diab                                                              */
+/* File Name   : GPT.c                                                                     */
+/* Description : Functions Implementation for GPT (General Purpose Timers) module in STM32 */
+/*******************************************************************************************/
+
+#include <STM32F103x.h>
+
+#include <LIB/common_macros.h>
+#include <LIB/std_types.h>
+
+#include "RCC_interface.h"
+#include "NVIC_interface.h"
+
+#include "GPT_private.h"
+#include "GPT_config.h"
+#include "GPT_interface.h"
+
+// Initialize the General-Purpose Timer (GPT) with the specified configuration.
+void GPT_init(TimerNUM Timerx, TimerConfig_t* TimerxCfg)
+{
+    CLR_BIT(Timer[Timerx]->CR1, 0);  // Disable the timer before configuration.
+
+
+    if (TimerxCfg->AutoReloadBuffer == ENABLED)
+        SET_BIT(Timer[Timerx]->CR1, 7);
+    else
+        CLR_BIT(Timer[Timerx]->CR1, 7);
+
+    // Configure the timer's prescaler based on the pre-defined mode or custom value.
+    // If TIMER_PRESCALER_CALCULATE is AUTO, calculate and set the prescaler.
+    // Else, directly set the custom prescaler value from TimerxCfg.
+    #if TIMER_PRESCALER_CALCULATE == TIMER_PRESCALER_AUTO
+        setPrescaler(Timerx);
+    #else
+        Timer[Timerx]->PSC = TimerxCfg->prescaler;
+    #endif
+    
+
+    if (TimerxCfg->Direction == UPCounter)
+    {
+        CLR_BIT(Timer[Timerx]->CR1, 4);          // Set as Up Counter
+        MOD_2BIT(Timer[Timerx]->CR1, 5, 0b00);   // Set counting mode to edge-aligned
+    }
+    else if (TimerxCfg->Direction == DownCounter)
+    {
+        SET_BIT(Timer[Timerx]->CR1, 4);          // Set as Down Counter
+        MOD_2BIT(Timer[Timerx]->CR1, 5, 0b00);   // Set counting mode to edge-aligned
+    }
+    else
+    {
+        // To implement center Aligned mode.
+    }
+
+    SET_BIT(Timer[Timerx]->CR1, 2);  // Only counter overflow/underflow generates an update interrupt if enabled.
+    CLR_BIT(Timer[Timerx]->CR1, 1);
+
+    SET_BIT(Timer[Timerx]->CR1, 0);  // Enable the timer after configuration.
+}
+
+// TO initialize Specific Timer to work as Tick counting
+// The function Initializes the necessary peripherals including RCC and NVIC.
+void GPT_initTickTimer(uint16 TickMillisecond)
+{
+    RCC_enableClk (RCC_APB1, RCC_TIM2 + TICK_TIMER);
+    NVIC_enableInterrupt(NVIC_TIM2  + TICK_TIMER);
+    
+    TimerConfig_t TickTImerConfig = {7,UPCounter,DISABLED};
+    
+    GPT_init(TICK_TIMER, &TickTImerConfig);
+    
+    if(TickMillisecond < 65)
+        GPT_setIntervalPeriodicMicroSec(TICK_TIMER,(TickMillisecond * 1000), updateTimTicks);
+    else
+        GPT_setIntervalPeriodicMilliSec(TICK_TIMER, TickMillisecond, updateTimTicks);
+    
+}
+
+
+// Delay the execution for the specified number of microseconds using the given timer.
+void GPT_delayMicroSec(TimerNUM Timerx, uint32 NoMicroSec)
+{
+    CLR_BIT(Timer[Timerx]->CR1, 0);    // Disable the timer before configuration.
+    CLR_BIT(Timer[Timerx]->SR, 0);     // Clear the timer status register.
+
+    CLR_BIT(Timer[Timerx]->DIER, 0);   // Disable timer interrupts.
+
+    if (NoMicroSec > 0)
+    {
+        if (NoMicroSec < 65536)
+        {
+            Timer[Timerx]->ARR = NoMicroSec;
+            Timer[Timerx]->CNT = 0;                      // Reset the counter value.
+            SET_BIT(Timer[Timerx]->CR1, 0);              // Enable the timer.
+            while (GET_BIT(Timer[Timerx]->SR, 0) == 0);  // Wait for the timer to count.
+        }
+        else
+        {
+            while (NoMicroSec > 65535)
+            {
+                Timer[Timerx]->ARR = 0xFFFF;
+                Timer[Timerx]->CNT = 0;                      // Reset the counter value.
+                SET_BIT(Timer[Timerx]->CR1, 0);              // Enable the timer.
+                while (GET_BIT(Timer[Timerx]->SR, 0) == 0);  // Wait for the timer to count.
+                NoMicroSec -= 65535;
+            }
+        }
+    }
+
+    Timer[Timerx]->ARR = 0;             // Reset the auto-reload register.
+    
+    CLR_BIT(Timer[Timerx]->SR, 0);      // Clear the timer status register.
+    CLR_BIT(Timer[Timerx]->CR1, 0);     // Disable the timer.
+}
+
+
+
+// Delay the execution for the specified number of milliseconds using the given timer.
+void GPT_delayMilliSec(TimerNUM Timerx, uint32 NoMilliSec)
+{
+    if (NoMilliSec > 0)
+    {
+        for (; NoMilliSec > 0; NoMilliSec--)
+        {
+            GPT_delayMicroSec(Timerx, 1000);  // Delay in microseconds (1000 microseconds = 1 millisecond)
+        }
+    }
+}
+
+
+// Set a single-shot timer interval in microseconds using the specified timer.
+void GPT_setIntervalSingleMicroSec(TimerNUM Timerx, uint16 NoMicroSec, void (*ptr)(void))
+{
+    CLR_BIT(Timer[Timerx]->CR1, 0);                     // Disable the timer before configuration.
+    CLR_BIT(Timer[Timerx]->SR , 0);                     // Clear the timer status register.
+                                                       
+    TimerMilliSecHold[Timerx] = 0;                      // Reset the millisecond count.
+    TimerCallBcak[Timerx] = ptr;                        // Set the callback function.
+    Timer[Timerx]->ARR = NoMicroSec;                    // Set the auto-reload value.
+    TimerIntervalMode[Timerx] = TIMER_INTERVAL_SINGLE;  // Set interval mode to single-shot.
+
+    SET_BIT(Timer[Timerx]->CR1 , 0);                    // Enable the timer.
+    SET_BIT(Timer[Timerx]->DIER, 0);                    // Enable timer interrupt.
+}
+
+
+// Set a periodic timer interval in microseconds using the specified timer.
+void GPT_setIntervalPeriodicMicroSec(TimerNUM Timerx, uint16 NoMicroSec, void (*ptr)(void))
+{
+    CLR_BIT(Timer[Timerx]->CR1, 0);                       // Disable the timer before configuration.
+    CLR_BIT(Timer[Timerx]->SR , 0);                       // Clear the timer status register.
+                     
+    TimerMilliSecHold[Timerx] = 0;                        // Reset the millisecond count.
+    TimerCallBcak[Timerx] = ptr;                          // Set the callback function.
+    Timer[Timerx]->ARR = NoMicroSec;                      // Set the auto-reload value.
+    TimerIntervalMode[Timerx] = TIMER_INTERVAL_PERIODIC;  // Set interval mode to periodic.
+
+    SET_BIT(Timer[Timerx]->CR1 , 0);                      // Enable the timer.
+    SET_BIT(Timer[Timerx]->DIER, 0);                      // Enable timer interrupt.
+}
+
+
+
+// Set a single-shot timer interval in milliseconds using the specified timer.
+void GPT_setIntervalSingleMilliSec(TimerNUM Timerx, uint16 NoMilliSec, void (*ptr)(void))
+{
+    CLR_BIT(Timer[Timerx]->CR1, 0);                       // Disable the timer before configuration.
+    CLR_BIT(Timer[Timerx]->SR , 0);                       // Clear the timer status register.
+                                                          
+    if (NoMilliSec > 0)                                   
+        TimerMilliSecHold[Timerx] = NoMilliSec - 1;       // Set the millisecond count.
+                                                          
+    TimerCallBcak[Timerx] = ptr;                          // Set the callback function.
+    Timer[Timerx]->ARR = 1000;                            // Set the auto-reload value to 1000 for 1 ms interval.
+    TimerIntervalMode[Timerx] = TIMER_INTERVAL_SINGLE;    // Set interval mode to single-shot.
+
+    SET_BIT(Timer[Timerx]->CR1 , 0);                      // Enable the timer.
+    SET_BIT(Timer[Timerx]->DIER, 0);                      // Enable timer interrupt.
+}
+
+
+// Set a periodic timer interval in milliseconds using the specified timer.
+void GPT_setIntervalPeriodicMilliSec(TimerNUM Timerx, uint16 NoMilliSec, void (*ptr)(void))
+{
+    CLR_BIT(Timer[Timerx]->CR1, 0);                       // Disable the timer before configuration.
+    CLR_BIT(Timer[Timerx]->SR , 0);                       // Clear the timer status register.
+
+    if (NoMilliSec > 0)
+    {
+        NoMilliSecPeriodic[Timerx] = NoMilliSec - 1;              // Calculate the periodic millisecond value.
+        TimerMilliSecHold[Timerx] = NoMilliSecPeriodic[Timerx];   // Set the millisecond count.
+    }
+
+    TimerCallBcak[Timerx] = ptr;                          // Set the callback function.
+    Timer[Timerx]->ARR = 1000;                            // Set the auto-reload value.
+    TimerIntervalMode[Timerx] = TIMER_INTERVAL_PERIODIC;  // Set interval mode to periodic.
+
+    SET_BIT(Timer[Timerx]->CR1 , 0);                      // Enable the timer.
+    SET_BIT(Timer[Timerx]->DIER, 0);                      // Enable timer interrupt.
+}
+
+
+
+// Stop the interval timer on the specified timer instance.
+void GPT_stopInterval(TimerNUM Timerx)
+{
+    CLR_BIT(Timer[Timerx]->CR1, 0);                       // Disable the timer.
+    Timer[Timerx]->ARR = 0;                               // Reset the auto-reload register.
+    Timer[Timerx]->CNT = 0;                               // Reset the counter value.
+                                                          
+    TimerMilliSecHold[Timerx]  = 0;                       // Reset the millisecond hold value.
+    NoMilliSecPeriodic[Timerx] = 0;                       // Reset the periodic millisecond value.
+}
+
+
+// Returns TIMER_USED (0) if the timer is in use, or TIMER_FREE (1) if it is free.
+uint8 GPT_isTimerFree(TimerNUM Timerx)
+{
+    if (Timer[Timerx]->ARR || Timer[Timerx]->CNT)
+        return TIMER_USED;                                // Timer is in use.
+                     
+    return TIMER_FREE;                                    // Timer is free.
+}
+
+
+// Returns the elapsed time in timer counts.
+uint16 GPT_getElapsedTime(TimerNUM Timerx)
+{
+    uint16 elapsedTime;
+
+    // If the timer is an up counter, elapsed time is the current counter value.
+    // If the timer is a down counter, elapsed time is the difference between ARR and counter value.
+    if (GET_BIT(Timer[Timerx]->CR1, 4) == 0)
+        elapsedTime = Timer[Timerx]->CNT;
+    else
+        elapsedTime = Timer[Timerx]->ARR - Timer[Timerx]->CNT;
+
+    return elapsedTime;
+}
+
+// Returns the remaining time in timer counts.
+uint16 GPT_getRemainingTime(TimerNUM Timerx)
+{
+    uint16 remainingTime;
+
+    // If the timer is an up counter, remaining time is the difference between ARR and counter value.
+    // If the timer is a down counter, remaining time is the current counter value.
+    if (GET_BIT(Timer[Timerx]->CR1, 4) == 1)
+        remainingTime = Timer[Timerx]->CNT;
+    else
+        remainingTime = Timer[Timerx]->ARR - Timer[Timerx]->CNT;
+
+    return remainingTime;
+}
+
+// Returns Ticks counter if timer was initialized as Tick Counting
+uint32 GPT_getTicks()
+{
+    return Tick;
+}
+
+
+void updateTimTicks()
+{
+    Tick++;
+}
+
+
+// Set the prescaler value for the specified timer based on the APB1 clock frequency.
+void setPrescaler(TimerNUM Timerx)
+{
+    uint16 prescaler = 0;
+
+    // Calculate the prescaler value based on the APB1 clock frequency.
+    // If APB1 clock is not divided, calculate the prescaler directly.
+    // Otherwise, multiply clock freq by 2 by shifting it left by 1 and then calculate the prescaler.
+    #if APB1_PRESCALER == APB1_NOT_DIVIDED
+        prescaler = (RCC_APB1_CLK_FRQ / 1000000) - 1; 
+    #else
+        prescaler = ((RCC_APB1_CLK_FRQ << 1) / 1000000) - 1;
+    #endif
+
+    Timer[Timerx]->PSC = prescaler;  // Set the calculated prescaler value.
+}
+
+
+// Interrupt handler for Timer 2 events.
+void TIM2_IRQHandler(void)
+{
+    CLR_BIT(Timer[0]->SR, 0);      // Clear the timer status register.
+                
+    // Check if the timer has completed its interval cycle if above milliseconds.
+    if (TimerMilliSecHold[0] == 0)
+    {
+        // Execute the callback function if it is not NULL.
+        if (TimerCallBcak[0] != NULL)
+            TimerCallBcak[0]();
+        
+        // Handle single-shot or periodic interval modes.
+        if (TimerIntervalMode[0] == TIMER_INTERVAL_SINGLE)
+            CLR_BIT(Timer[0]->CR1, 0);     // Disable the timer.
+        else
+            TimerMilliSecHold[0] = NoMilliSecPeriodic[0];  // Reset the periodic millisecond count.
+    }
+    else
+        TimerMilliSecHold[0]--;  // Decrement the millisecond hold count.
+}
+
+
+// Interrupt handler for Timer 3 events.
+void TIM3_IRQHandler(void)
+{
+    CLR_BIT(Timer[1]->SR, 0);      // Clear the timer status register.
+    
+    // Check if the timer has completed its interval.
+    if (TimerMilliSecHold[1] == 0)
+    {
+        // Execute the callback function if it is not NULL.
+        if (TimerCallBcak[1] != NULL)
+            TimerCallBcak[1]();
+        
+        // Handle single-shot or periodic interval modes.
+        if (TimerIntervalMode[1] == TIMER_INTERVAL_SINGLE)
+            CLR_BIT(Timer[1]->CR1, 0);     // Disable the timer.
+        else
+            TimerMilliSecHold[1] = NoMilliSecPeriodic[1];  // Reset the periodic millisecond count.
+    }
+    else
+        TimerMilliSecHold[1]--;  // Decrement the millisecond hold count.
+}
+
+// Interrupt handler for Timer 4 events.
+void TIM4_IRQHandler(void)
+{
+    CLR_BIT(Timer[2]->SR, 0);      // Clear the timer status register.
+    
+    // Check if the timer has completed its interval.
+    if (TimerMilliSecHold[2] == 0)
+    {
+        // Execute the callback function if it is not NULL.
+        if (TimerCallBcak[2] != NULL)
+            TimerCallBcak[2]();
+        
+        // Handle single-shot or periodic interval modes.
+        if (TimerIntervalMode[2] == TIMER_INTERVAL_SINGLE)
+            CLR_BIT(Timer[2]->CR1, 0);     // Disable the timer.
+        else
+            TimerMilliSecHold[2] = NoMilliSecPeriodic[2];  // Reset the periodic millisecond count.
+    }
+    else
+        TimerMilliSecHold[2]--;  // Decrement the millisecond hold count.
+}
+

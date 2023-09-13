@@ -1,0 +1,14 @@
+../Src/APP/Tetris/Model/Tetris_Model.c:15:1:Tetris_Model_init	24	static
+../Src/APP/Tetris/Model/Tetris_Model.c:43:6:cleargridBlocks	24	static
+../Src/APP/Tetris/Model/Tetris_Model.c:51:9:isMovingObjectStable	24	static
+../Src/APP/Tetris/Model/Tetris_Model.c:75:9:isGameOver	24	static
+../Src/APP/Tetris/Model/Tetris_Model.c:93:6:sortPlayers	24	static
+../Src/APP/Tetris/Model/Tetris_Model.c:114:9:handlePeriodicMoveDown	24	static
+../Src/APP/Tetris/Model/Tetris_Model.c:144:9:updateGamePlay	16	static
+../Src/APP/Tetris/Model/Tetris_Model.c:171:6:createRandObject	24	static
+../Src/APP/Tetris/Model/Tetris_Model.c:188:6:resetGame	24	static
+../Src/APP/Tetris/Model/Tetris_Model.c:217:6:moveObject	32	static
+../Src/APP/Tetris/Model/Tetris_Model.c:317:6:addMovingObjectToGrid	24	static
+../Src/APP/Tetris/Model/Tetris_Model.c:326:6:checkAndClearLines	56	static
+../Src/APP/Tetris/Model/Tetris_Model.c:377:6:rotateObject	64	static
+../Src/APP/Tetris/Model/Tetris_Model.c:729:6:modifyPlayerName	16	static

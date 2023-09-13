@@ -1,0 +1,7 @@
+../Src/APP/Tetris/Controller/Tetris_Controller.c:15:6:Tetris_Controller_init	1
+../Src/APP/Tetris/Controller/Tetris_Controller.c:22:6:Tetris_Controller_handle	6
+../Src/APP/Tetris/Controller/Tetris_Controller.c:59:13:handleWelcomeScreen	6
+../Src/APP/Tetris/Controller/Tetris_Controller.c:90:13:handleInputNameScreen	18
+../Src/APP/Tetris/Controller/Tetris_Controller.c:171:13:handleTopScoresScreen	2
+../Src/APP/Tetris/Controller/Tetris_Controller.c:189:13:handleGameScreen	7
+../Src/APP/Tetris/Controller/Tetris_Controller.c:222:13:handleGameOverScreen	2
