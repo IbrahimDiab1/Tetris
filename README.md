@@ -124,16 +124,16 @@ To set up and play the Tetris game, the following components are required:
 
 ### Screenshots
 
-![Welcome Screen]("Images/welcome screen.jpg") 
+![Welcome Screen](Images/welcome%20screen.jpg) 
 * Welcome Screen*
 
-![Input Name]("Images/player name.jpg") 
+![Input Name](Images/player%20name.jpg) 
 * Input Name*
 
-![Game Play]("Images/game play.jpg") 
+![Game Play](Images/game%20play.jpg) 
 * Game Play*
 
-![Top Players]("Images/top players.jpg") 
+![Top Players](Images/top%20players.jpg) 
 * Top Players*
 
 ## Conclusion
