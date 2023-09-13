@@ -120,20 +120,20 @@ To set up and play the Tetris game, the following components are required:
 
 ### Gameplay Video
 
-- Watch a short video demonstration of the Tetris game in action [here].
+- Watch a short video demonstration of the Tetris game in action [https://drive.google.com/file/d/17LM5EVKs0PjUvsnb-pFeqHGKEiAGLBNa/view?usp=sharing].
 
 ### Screenshots
 
-![Screenshot 1](image-1-link)
+![Welcome Screen](images/welcome screen.jpg) 
 * Welcome Screen*
 
-![Screenshot 2](image-2-link)
+![Input Name](images/player name.jpg) 
 * Input Name*
 
-![Screenshot 3](image-3-link)
+![Game Play](images/game play.jpg) 
 * Game Play*
 
-![Screenshot 4](image-4-link)
+![Top Players](images/top players.jpg) 
 * Top Players*
 
 ## Conclusion
