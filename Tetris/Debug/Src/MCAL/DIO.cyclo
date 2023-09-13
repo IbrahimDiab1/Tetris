@@ -1,0 +1,6 @@
+../Src/MCAL/DIO.c:17:6:DIO_setPinDirection	17
+../Src/MCAL/DIO.c:143:6:DIO_setPinValue	11
+../Src/MCAL/DIO.c:176:7:DIO_getPinValue	5
+../Src/MCAL/DIO.c:205:6:DIO_setMultiPinsDirection	3
+../Src/MCAL/DIO.c:227:6:DIO_setMultiPinValue	6
+../Src/MCAL/DIO.c:256:8:DIO_getMultiPinValue	5

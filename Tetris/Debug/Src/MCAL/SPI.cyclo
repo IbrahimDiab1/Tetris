@@ -1,0 +1,8 @@
+../Src/MCAL/SPI.c:17:6:SPI1_init	1
+../Src/MCAL/SPI.c:61:6:SPI2_init	1
+../Src/MCAL/SPI.c:105:6:SPI1_sendReceiveByteSync	2
+../Src/MCAL/SPI.c:129:6:SPI1_sendReceiveByteAsync	2
+../Src/MCAL/SPI.c:145:6:SPI2_sendReceiveByteSync	2
+../Src/MCAL/SPI.c:167:6:SPI2_sendReceiveByteAsync	2
+../Src/MCAL/SPI.c:185:6:SPI1_IRQHandler	4
+../Src/MCAL/SPI.c:207:6:SPI2_IRQHandler	4

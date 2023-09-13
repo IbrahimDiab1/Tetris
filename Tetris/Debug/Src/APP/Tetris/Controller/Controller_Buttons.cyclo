@@ -1,0 +1,9 @@
+../Src/APP/Tetris/Controller/Controller_Buttons.c:20:13:Buttons_Tetris_initController	1
+../Src/APP/Tetris/Controller/Controller_Buttons.c:48:13:Buttons_Tetris_ubdateInputState	1
+../Src/APP/Tetris/Controller/Controller_Buttons.c:53:16:Buttons_Tetris_checkAction_Up	2
+../Src/APP/Tetris/Controller/Controller_Buttons.c:60:16:Buttons_Tetris_checkAction_Down	2
+../Src/APP/Tetris/Controller/Controller_Buttons.c:67:16:Buttons_Tetris_checkAction_Right	2
+../Src/APP/Tetris/Controller/Controller_Buttons.c:74:16:Buttons_Tetris_checkAction_Left	2
+../Src/APP/Tetris/Controller/Controller_Buttons.c:81:16:Buttons_Tetris_checkAction_Ok	2
+../Src/APP/Tetris/Controller/Controller_Buttons.c:88:16:Buttons_Tetris_checkAction_Rotate	2
+../Src/APP/Tetris/Controller/Controller_Buttons.c:95:16:Buttons_Tetris_checkAction_Drob_Down	2

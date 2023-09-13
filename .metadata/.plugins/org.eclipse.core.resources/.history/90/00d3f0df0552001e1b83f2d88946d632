@@ -1,0 +1,27 @@
+/**************************************************************************/
+/* Author      : Ibrahim Diab                                             */
+/* File Name   : Tetris_Controller_Buttons.h                                  */
+/* Description : Button configurations for Tetris game controller.        */
+/**************************************************************************/
+
+
+#ifndef _TETRIS_CONTROLLER_BUTTONS_H_
+#define _TETRIS_CONTROLLER_BUTTONS_H_
+
+#include "../Inc/HAL/Button/Button_interface.h"
+
+/*************************** Controller Configuration **************************/
+#define UP_BUTTON_PIN                   DIO_PIN10
+#define DOWN_BUTTON_PIN                 DIO_PIN1
+#define LEFT_BUTTON_PIN                 DIO_PIN6
+#define RIGHT_BUTTON_PIN                DIO_PIN8
+#define ROTATE_OK_BUTTON_PIN            DIO_PIN9
+
+#define UP_BUTTON_PORT                  DIO_GPIOA
+#define DOWN_BUTTON_PORT                DIO_GPIOA
+#define LEFT_BUTTON_PORT                DIO_GPIOA
+#define RIGHT_BUTTON_PORT               DIO_GPIOA
+#define ROTATE_OK_BUTTON_PORT           DIO_GPIOA
+
+
+#endif // _TETRIS_CONTROLLER_BUTTONS_H_

@@ -1,0 +1,7 @@
+../Src/APP/Tetris/Controller/Tetris_Controller.c:15:6:Tetris_Controller_init	16	static
+../Src/APP/Tetris/Controller/Tetris_Controller.c:22:6:Tetris_Controller_handle	16	static
+../Src/APP/Tetris/Controller/Tetris_Controller.c:59:13:handleWelcomeScreen	16	static
+../Src/APP/Tetris/Controller/Tetris_Controller.c:90:13:handleInputNameScreen	24	static
+../Src/APP/Tetris/Controller/Tetris_Controller.c:171:13:handleTopScoresScreen	16	static
+../Src/APP/Tetris/Controller/Tetris_Controller.c:189:13:handleGameScreen	16	static
+../Src/APP/Tetris/Controller/Tetris_Controller.c:222:13:handleGameOverScreen	16	static

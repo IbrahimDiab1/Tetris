@@ -1,0 +1,3 @@
+../Src/HAL/Button.c:25:6:Button_init	16	static
+../Src/HAL/Button.c:125:6:Button_updateState	16	static
+../Src/HAL/Button.c:203:16:Button_getState	16	static

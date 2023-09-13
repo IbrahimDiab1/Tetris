@@ -1,0 +1,3 @@
+../Src/MCAL/RCC.c:17:6:RCC_initSysClk	4	static
+../Src/MCAL/RCC.c:69:6:RCC_enableClk	16	static
+../Src/MCAL/RCC.c:98:6:RCC_disableClk	16	static

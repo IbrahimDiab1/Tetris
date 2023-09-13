@@ -1,0 +1,201 @@
+/****************************************************************************************/
+/* Author      : Ibrahim Diab                                                           */
+/* File Name   : Tetris_Model.h                                                         */
+/* Description : This file defines the structures, enums, functions, and configurations */
+/*               for a Tetris game model.                                               */
+/****************************************************************************************/
+
+
+#ifndef _TETRIS_MODEL_H_
+#define _TETRIS_MODEL_H_
+
+/***************************** Model Configuration *****************************/
+
+// Maximum number of players allowed in the game.
+#define MAX_PLAYERS                   10
+
+// Maximum length of a player's name.
+#define MAX_PLAYER_NAME_LENGTH        8
+
+// Time interval (in milliseconds) for moving the current object down automatically.
+#define MOVE_DOWN_PERIOD              1500
+
+// Score increase when a moving object becomes stable.
+#define STABLE_OBJECT_SCORE           5
+
+// Score increase when clearing a line in the grid.
+#define LINE_CLEAR_SCORE              80
+
+/***************************** Model Definition *****************************/
+
+// Number of rows in the game grid.
+#define GRID_ROWS                     20
+
+// Number of columns in the game grid.
+#define GRID_COLUMNS                  10
+
+// Total number of grid blocks in the game grid.
+#define GRID_BLOCK_COUNT              200  // Equals GRID_ROWS * GRID_COLUMNS
+
+// Total number of different object types in the game.
+#define OBJECT_COUNT                  7
+
+// Total number of blocks per object.
+#define OBJECT_BLOCKS_COUNT           4
+
+// Define macros for different object orientations.
+#define ORIENTATION_0                 0    // 0 degrees
+#define ORIENTATION_90                1    // 90 degrees
+#define ORIENTATION_180               2    // 180 degrees
+#define ORIENTATION_270               3    // 270 degrees
+
+// Define macros for option selections.
+#define OPTION_PLAY                   1
+#define OPTION_TOP_SCORES             2
+
+
+// Enumeration of different Tetris object types.
+typedef enum
+{
+    Object_A,
+    Object_B,
+    Object_C,
+    Object_D,
+    Object_E,
+    Object_F,
+    Object_G
+} TetrisObjectType;
+
+// Enumeration of different game states.
+typedef enum
+{
+    State_Null,
+    State_Welcome,
+    State_TOP_Scores,
+    State_Input_Name,
+    State_Game_Play,
+    State_Game_Over
+} GameState;
+
+// Enumeration of different user actions for moving the Tetris object.
+typedef enum
+{
+    Action_Move_Left,
+    Action_Move_Right,
+    Action_Move_Down,
+    Action_Drop_Down
+} UserAction;
+
+// Structure to represent a Tetris player's score and name.
+typedef struct
+{
+    uint16 score;
+    uint8 name[MAX_PLAYER_NAME_LENGTH];
+} Tetris_Player_t;
+
+// Structure to represent the coordinates of a single block.
+typedef struct
+{
+    int8 x;
+    int8 y;
+} Block_Coordinate_t;
+
+// Structure to represent a Tetris object consisting of four blocks.
+typedef struct
+{
+   Block_Coordinate_t block[4];
+} Tetris_Object_t;
+
+// Structure to hold dependencies for the Tetris game (time and random number generation).
+typedef struct
+{
+    uint32 (*getTime)(void);
+    uint16 (*getRandomNumber)(void);
+} Dependencies_t;
+
+
+// Structure to represent the Tetris game model.
+typedef struct
+{
+    boolean grid[GRID_ROWS][GRID_COLUMNS];  // Grid to represent the game board.
+    Tetris_Object_t currentMovingObject;    // To store the random object created each cycle.
+    Dependencies_t dependencies;            // Dependencies for time and random number generation.
+
+    TetrisObjectType CurrentObjectType;     // Type of the current moving object.
+
+    GameState previousGameState;            // Previous game state.
+    GameState currentGameState;             // Current game state.
+
+    uint32 lastMoveTime;                    // Time of the last move.
+
+    boolean refreshFlag;                    // Flag to indicate the need for a screen refresh.
+    uint8 selectedOption;                   // Selected game option.
+    uint8 selectedChar;                     // Selected character (for player name input).
+    uint8 currentLevel;                     // Current game level.
+    uint8 rotateState;                      // Current rotation state.
+} Tetris_Model_t;
+
+// Array of initial coordinates for different Tetris object types.
+static const Tetris_Object_t initialObjectsCoordinates[OBJECT_COUNT] =
+{
+    {{{4, 0}, {4, 1}, {5, 1}, {5, 0}}}, // OBJECT_A
+    {{{3, 0}, {4, 0}, {5, 0}, {6, 0}}}, // OBJECT_B
+    {{{4, 1}, {4, 0}, {5, 0}, {6, 0}}}, // OBJECT_C
+    {{{5, 1}, {5, 0}, {4, 0}, {3, 0}}}, // OBJECT_D
+    {{{3, 0}, {4, 0}, {5, 0}, {4, 1}}}, // OBJECT_E
+    {{{3, 0}, {4, 0}, {4, 1}, {5, 1}}}, // OBJECT_F
+    {{{3, 1}, {4, 1}, {4, 0}, {5, 0}}}  // OBJECT_G
+};
+
+
+// Declaration of player data and current player index
+extern Tetris_Player_t Tetris_Player[MAX_PLAYERS];
+extern uint8 Current_Tetris_Player;
+
+/************************************** APIs Functions **************************************/
+
+// function to initialize the Tetris game model
+void Tetris_Model_init(Tetris_Model_t *model, Dependencies_t *dependencies);
+
+
+/************************************** Private Functions **************************************/
+
+// function to clear the game grid
+void cleargridBlocks(Tetris_Model_t *model);
+
+// function to create a random Tetris object
+void createRandObject(Tetris_Model_t *model);
+
+// function to reset the game state
+void resetGame(Tetris_Model_t *model);
+
+// function to move the Tetris object based on user input
+void moveObject(Tetris_Model_t *model, UserAction action);
+
+// function to add the current moving object to the grid
+void addMovingObjectToGrid(Tetris_Model_t *model);
+
+// function to check and clear completed lines
+void checkAndClearLines(Tetris_Model_t *model);
+
+// function to rotate the Tetris object
+void rotateObject(Tetris_Model_t *model);
+
+// Function to create a random number in a given range
+uint16 createRandomNum(uint16 start, uint16 end);
+
+// Function to check if the moving Tetris object is stable
+boolean isMovingObjectStable(Tetris_Model_t *model);
+
+// Function to check if the game is over
+boolean isGameOver(Tetris_Model_t *model);
+
+// Function to handle periodic downward movement of the Tetris object
+boolean handlePeriodicMoveDown(Tetris_Model_t *model);
+
+// Function to update the game play based on the current state
+boolean updateGamePlay(Tetris_Model_t *model);
+
+
+
+#endif // _TETRIS_MODEL_H_

@@ -1,0 +1,237 @@
+/******************************************************************************************/
+/* Author      : Ibrahim Diab                                                             */
+/* File Name   : Tetris_Controller.c                                                      */
+/* Description : The controller functions for handling Tetris game states and user input. */
+/******************************************************************************************/
+
+#include "std_types.h"
+#include "common_macros.h"
+
+#include "Tetris_Model.h"
+#include "Tetris_Controller.h"
+
+
+// Initialize the Tetris controller.
+void initTetrisController(Tetris_Controller_t *controller)
+{
+    controller->initController();
+}
+
+
+// Handle the Tetris game state based on the current game state.
+void Tetris_Controller_handler(Tetris_Model_t *model, Tetris_Controller_t *controller)
+{
+    switch (model->currentGameState)
+    {
+        case State_Welcome:
+            // Handle the welcome screen.
+            handleWelcomeScreen(model, controller);
+            break;
+
+        case State_TOP_Scores:
+            // Handle the top scores screen.
+            handleTopScoresScreen(model, controller);
+            break;
+
+        case State_Input_Name:
+            // Handle the input name screen.
+            handleInputNameScreen(model, controller);
+            break;
+
+        case State_Game_Play:
+            // Handle the game screen.
+            handleGameScreen(model, controller);
+            break;
+
+        case State_Game_Over:
+            // Handle the game over screen.
+            handleGameOverScreen(model, controller);
+            break;
+
+        default:
+            // Handle unknown game state (if needed).
+            break;
+    }
+}
+
+
+// Handle the welcome screen logic.
+void handleWelcomeScreen(Tetris_Model_t *model, Tetris_Controller_t *controller)
+{
+    // Update input state.
+    controller->ubdateInputState();
+
+    // Update previous game state.
+    model->previousGameState = model->currentGameState;
+
+    // Check for the "OK" action button press.
+    if (controller->checkAction_Ok())
+    {
+        if (model->selectedOption == OPTION_PLAY)
+        {
+            // Select character in player name to change.
+            model->selectedOption   = 0;
+            model->selectedChar     = 0;
+            model->currentGameState = State_Input_Name;
+        }
+        else if (model->selectedOption == OPTION_TOP_SCORES)
+            model->currentGameState = State_TOP_Scores;         // Switch to the top scores screen.
+
+    }
+    else if (controller->checkAction_Up())
+        model->selectedOption = OPTION_PLAY;                    // Handle "Up" button press.
+
+    else if (controller->checkAction_Down())
+        model->selectedOption = OPTION_TOP_SCORES;              // Handle "Down" button press.
+
+}
+
+
+void handleInputNameScreen(Tetris_Model_t *model, Tetris_Controller_t *controller)
+{
+    // Update input state.
+    controller->ubdateInputState();
+
+    // Update previous game state.
+    model->previousGameState = model->currentGameState;
+
+    // Check if the "OK" action is triggered (usually to confirm player name)
+    if (controller->checkAction_Ok())
+    {
+        // Modify the player's name
+        modifyPlayerName();
+
+        // Prepare data for the next game state:
+        // Create a random game object
+        createRandObject(model);
+
+        // Set the last move time
+        model->lastMoveTime = model->dependencies.getTime();
+
+        // Switch to the game play state
+        model->currentGameState = State_Game_Play;
+    }
+    // Check if the "Right" action is triggered (move cursor right in player name)
+    else if (controller->checkAction_Right())
+    {
+        // Check if the character is not '-' and there's room to move right
+        if (Tetris_Player[Current_Tetris_Player].name[model->selectedChar] != '-' &&  model->selectedChar < (MAX_PLAYER_NAME_LENGTH - 1))
+            model->selectedChar++;
+    }
+    // Check if the "Left" action is triggered (move cursor left in player name)
+    else if (controller->checkAction_Left())
+    {
+        // Check if there's room to move left
+        if (model->selectedChar > 0)
+            model->selectedChar--;
+    }
+    // Check if the "Up" action is triggered (increase character in player name)
+    else if (controller->checkAction_Up())
+    {
+        // Check if the current character is not entered yet '-'
+        if (Tetris_Player[Current_Tetris_Player].name[model->selectedChar] == '-')
+        {
+            // In case it is the first char, use capital letter.
+            if (model->selectedChar == 0)
+                Tetris_Player[Current_Tetris_Player].name[model->selectedChar] = 'A';
+
+            // Otherwise, use a small letter.
+            else
+                Tetris_Player[Current_Tetris_Player].name[model->selectedChar] = 'a';
+        }
+        else
+        {
+            // Check if it's an uppercase letter at the beginning
+            if (Tetris_Player[Current_Tetris_Player].name[model->selectedChar] < 'Z' && model->selectedChar == 0)
+                Tetris_Player[Current_Tetris_Player].name[model->selectedChar]++;
+
+            // Check if it's a lowercase letter or not at the beginning
+            if (Tetris_Player[Current_Tetris_Player].name[model->selectedChar] < 'z' && model->selectedChar != 0)
+                Tetris_Player[Current_Tetris_Player].name[model->selectedChar]++;
+        }
+    }
+
+    // Check if the "Down" action is triggered (decrease character in player name)
+    else if (controller->checkAction_Down())
+    {
+        // Check if it's 'A' or 'a' and replace it with '-'
+        if (Tetris_Player[Current_Tetris_Player].name[model->selectedChar] == 'A' || Tetris_Player[Current_Tetris_Player].name[model->selectedChar] == 'a')
+            Tetris_Player[Current_Tetris_Player].name[model->selectedChar] = '-';
+
+        else if (Tetris_Player[Current_Tetris_Player].name[model->selectedChar] == '-')
+        {
+            // do nothing
+        }
+        else
+            Tetris_Player[Current_Tetris_Player].name[model->selectedChar]--;
+    }
+}
+
+
+void handleTopScoresScreen (Tetris_Model_t *model, Tetris_Controller_t *controller)
+{
+    // Update input state.
+    controller->ubdateInputState();
+
+    // Update previous game state.
+    model->previousGameState = model->currentGameState;
+
+    // Check if the "OK" action is triggered
+    if (controller->checkAction_Ok())
+    {
+        // Select the "Previous" button and switch to the welcome screen
+        model->selectedOption   = OPTION_TOP_SCORES;
+        model->currentGameState = State_Welcome;
+    }
+}
+
+
+void handleGameScreen(Tetris_Model_t *model, Tetris_Controller_t *controller)
+{
+    // Update input state.
+    controller->ubdateInputState();
+
+    // Update previous game state.
+    model->previousGameState = model->currentGameState;
+
+    // Check if it's time for the moving object to move down
+    if (handlePeriodicMoveDown(model))
+        return; // Exit the function, as the move down was handled
+
+    // Check for other controller actions
+    if (controller->checkAction_Rotate())
+        rotateObject(model);
+
+    else if (controller->checkAction_Right())
+        moveObject(model, Action_Move_Right);
+
+    else if (controller->checkAction_Left())
+        moveObject(model, Action_Move_Left);
+
+    else if (controller->checkAction_Down())
+        moveObject(model, Action_Move_Down);
+
+    else if (controller->checkAction_Drob_Down())
+        moveObject(model, Action_Drop_Down);        // Drop the current moving object down quickly
+
+    // Update the game state and perform any necessary actions
+    (void)updateGamePlay(model);
+}
+
+
+void handleGameOverScreen (Tetris_Model_t *model, Tetris_Controller_t *controller)
+{
+    // Update input state.
+    controller->ubdateInputState();
+
+    // Update previous game state.
+    model->previousGameState = model->currentGameState;
+    
+    // Check if the "OK" action is triggered
+    if (controller->checkAction_Ok())
+    {
+        // Reset the game data and switch to the welcome screen
+        resetGame(model);
+        model->currentGameState = State_Welcome;
+    }
+}
